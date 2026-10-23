@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AJG Mail</title>
+<style>
+  :root{
+    --bg:#f6f8fc; --panel:#ffffff; --line:#e0e4ea; --text:#1f2328; --dim:#68707a;
+    --accent:#5865f2; --accent2:#8b5cf6; --hover:#eef1f6; --selected:#e8ebff;
+    --danger:#d93025; --shadow:0 18px 50px rgba(31,35,40,.16);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,sans-serif;overflow:hidden}
+  button,input,textarea,select{font:inherit}
+  button{cursor:pointer}
+  .hidden{display:none!important}
+
+  /* ---------- Auth gate ---------- */
+  #auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px;overflow:auto;
+    background:radial-gradient(900px 500px at 15% 0%,rgba(88,101,242,.20),transparent 60%),radial-gradient(800px 500px at 90% 100%,rgba(139,92,246,.18),transparent 60%),var(--bg)}
+  .auth-card{width:min(440px,94vw);background:var(--panel);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:34px 34px 26px}
+  .brand{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:6px}
+  .brand-mark{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 10px 24px rgba(88,101,242,.35)}
+  .brand h1{font-size:30px;margin:0;letter-spacing:-.5px}
+  .auth-sub{text-align:center;color:var(--dim);font-size:14px;margin:4px 0 24px}
+  .tabs{display:flex;background:var(--hover);border-radius:999px;padding:4px;margin-bottom:22px}
+  .tabs button{flex:1;border:0;background:transparent;border-radius:999px;padding:10px;font-weight:700;color:var(--dim)}
+  .tabs button.on{background:#fff;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.10)}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}
+  .field input{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:#fff;outline:none}
+  .field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(88,101,242,.16)}
+  .addr-wrap{display:flex;align-items:stretch}
+  .addr-wrap input{border-radius:12px 0 0 12px;border-right:0}
+  .addr-suffix{display:flex;align-items:center;padding:0 13px;border:1px solid var(--line);border-left:0;border-radius:0 12px 12px 0;background:var(--hover);color:var(--dim);font-weight:700;white-space:nowrap}
+  .hint{font-size:12px;color:var(--dim);margin-top:6px}
+  .auth-btn{width:100%;border:0;border-radius:999px;padding:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:800;font-size:15px;margin-top:4px}
+  .auth-btn:hover{filter:brightness(1.07)}
+  .auth-error{display:none;background:#fce8e6;color:#a50e0e;border-radius:12px;padding:11px 13px;font-size:13px;margin-bottom:14px}
+  .auth-error.show{display:block}
+  .auth-foot{text-align:center;color:var(--dim);font-size:12px;margin-top:18px;line-height:1.5}
+
+  /* ---------- App ---------- */
+  #app{height:100vh;display:flex;flex-direction:column}
+  header{height:64px;display:flex;align-items:center;gap:16px;padding:0 18px;background:var(--panel);border-bottom:1px solid var(--line);flex:none}
+  .logo{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:800;white-space:nowrap}
+  .logo .brand-mark{width:38px;height:38px;border-radius:11px;font-size:20px}
+  .search{flex:1;max-width:680px;margin:0 auto;display:flex;align-items:center;gap:9px;background:var(--hover);border-radius:999px;padding:0 16px;height:44px}
+  .search input{flex:1;border:0;background:transparent;outline:none;font-size:15px}
+  .account{position:relative}
+  .acct-btn{display:flex;align-items:center;gap:10px;border:0;background:transparent;border-radius:999px;padding:5px 10px 5px 5px}
+  .acct-btn:hover{background:var(--hover)}
+  .avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;text-transform:uppercase;flex:none}
+  .acct-meta{text-align:left;line-height:1.15}
+  .acct-meta b{font-size:13px;display:block}
+  .acct-meta span{font-size:12px;color:var(--dim)}
+  .acct-menu{position:absolute;right:0;top:52px;width:270px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:14px;z-index:60}
+  .acct-menu .who{text-align:center;padding:6px 4px 12px;border-bottom:1px solid var(--line);margin-bottom:10px}
+  .acct-menu .who .avatar{margin:0 auto 8px;width:46px;height:46px;font-size:19px}
+  .acct-menu button{width:100%;border:0;background:var(--hover);border-radius:999px;padding:10px;font-weight:700}
+  main{flex:1;display:flex;min-height:0}
+  aside{width:240px;flex:none;padding:16px 12px;background:transparent}
+  .compose-btn{border:0;border-radius:16px;padding:15px 22px;background:#dbe2ff;color:#26348f;font-weight:800;box-shadow:0 4px 14px rgba(88,101,242,.18);margin:0 4px 18px}
+  .compose-btn:hover{filter:brightness(1.03)}
+  .nav{display:flex;flex-direction:column;gap:2px}
+  .nav button{display:flex;align-items:center;gap:13px;border:0;background:transparent;border-radius:0 999px 999px 0;padding:10px 14px;font-weight:600;color:#3c4043;text-align:left}
+  .nav button:hover{background:var(--hover)}
+  .nav button.on{background:var(--selected);color:#26348f;font-weight:800}
+  .nav .count{margin-left:auto;background:#c5221f;color:#fff;border-radius:999px;font-size:11px;font-weight:800;padding:2px 7px}
+  .content{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0;margin:14px 14px 0 0;display:flex;flex-direction:column;overflow:hidden}
+  .toolbar{height:50px;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid var(--line);flex:none}
+  .toolbar b{font-size:16px}
+  .toolbar .sp{flex:1}
+  .icon-btn{border:0;background:transparent;border-radius:50%;width:38px;height:38px;font-size:17px}
+  .icon-btn:hover{background:var(--hover)}
+  .mail-wrap{flex:1;display:flex;min-height:0}
+  #list{width:44%;min-width:300px;border-right:1px solid var(--line);overflow-y:auto}
+  .mail-row{display:flex;gap:11px;padding:13px 14px;border-bottom:1px solid #eef0f3;cursor:pointer;align-items:flex-start}
+  .mail-row:hover{background:#f8f9fc}
+  .mail-row.on{background:var(--selected)}
+  .mail-row.unread{background:#f2f5ff}
+  .mail-row .avatar{width:38px;height:38px;font-size:15px}
+  .mail-main{flex:1;min-width:0}
+  .mail-top{display:flex;gap:8px;align-items:baseline}
+  .mail-from{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mail-row.unread .mail-from,.mail-row.unread .mail-subj{font-weight:800}
+  .mail-time{margin-left:auto;color:var(--dim);font-size:12px;white-space:nowrap}
+  .mail-subj{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+  .mail-snip{color:var(--dim);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none;margin-top:6px}
+  .empty{padding:52px 24px;text-align:center;color:var(--dim)}
+  .empty .big{font-size:44px;margin-bottom:10px}
+  #reader{flex:1;min-width:0;overflow-y:auto;padding:24px 28px}
+  .reader-subj{font-size:23px;font-weight:750;margin:2px 0 18px}
+  .reader-head{display:flex;gap:12px;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:18px}
+  .reader-head .avatar{width:42px;height:42px}
+  .reader-body{white-space:pre-wrap;line-height:1.65;font-size:15px;word-wrap:break-word}
+  .reader-actions{display:flex;gap:8px;margin-top:24px;flex-wrap:wrap}
+  .pill-btn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 16px;font-weight:700}
+  .pill-btn:hover{background:var(--hover)}
+  .pill-btn.danger{color:var(--danger)}
+  .star-btn.starred{color:#f4b400}
+
+  /* ---------- Compose ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(24,26,32,.42);display:flex;align-items:center;justify-content:center;z-index:80;padding:18px}
+  .compose{width:min(640px,96vw);max-height:92vh;overflow:auto;background:#fff;border-radius:20px;box-shadow:var(--shadow)}
+  .compose-head{display:flex;align-items:center;justify-content:space-between;background:#f2f4ff;padding:15px 18px;border-radius:20px 20px 0 0}
+  .compose-head b{font-size:16px}
+  .compose form{padding:16px 18px 18px}
+  .compose input,.compose textarea{width:100%;border:0;border-bottom:1px solid var(--line);padding:11px 2px;outline:none;resize:vertical}
+  .compose textarea{min-height:190px;border-bottom:0;line-height:1.55}
+  .compose input:focus{border-color:var(--accent)}
+  .send-row{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .send-btn{border:0;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;padding:11px 24px;font-weight:800}
+  .form-error{display:none;color:var(--danger);font-size:13px}
+  .form-error.show{display:block}
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#202124;color:#fff;border-radius:999px;padding:12px 20px;opacity:0;pointer-events:none;transition:.25s;z-index:120;font-weight:650;box-shadow:var(--shadow)}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media (max-width:820px){
+    aside{display:none}
+    .content{margin:10px 10px 0}
+    #list{width:100%;min-width:0;border-right:0}
+    #reader{display:none}
+    .mail-wrap.reading #list{display:none}
+    .mail-wrap.reading #reader{display:block}
+    .acct-meta{display:none}
+    .search{margin:0}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= AUTH GATE ================= -->
+<section id="auth">
+  <div class="auth-card">
+    <div class="brand"><div class="brand-mark">✉️</div><h1>AJG Mail</h1></div>
+    <p class="auth-sub">Gmail, but better. Your address ends in <b>@ajgmail.com</b></p>
+
+    <div class="tabs">
+      <button id="tab-login" class="on" type="button">Log in</button>
+      <button id="tab-create" type="button">Create account</button>
+    </div>
+
+    <div id="auth-error" class="auth-error"></div>
+
+    <!-- LOGIN -->
+    <form id="login-form">
+      <div class="field">
+        <label for="login-address">Your AJG Mail address</label>
+        <input id="login-address" autocomplete="username" placeholder="yourname or yourname@ajgmail.com">
+      </div>
+      <div class="field">
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" autocomplete="current-password" placeholder="Your password">
+      </div>
+      <button class="auth-btn" type="submit">Log in</button>
+      <p class="hint" style="text-align:center;margin-top:14px">New here? Switch to <b>Create account</b>.</p>
+    </form>
+
+    <!-- CREATE -->
+    <form id="create-form" class="hidden">
+      <div class="field">
+        <label for="create-name">Your name</label>
+        <input id="create-name" autocomplete="name" placeholder="e.g. Avery">
+      </div>
+      <div class="field">
+        <label for="create-local">Choose your email address</label>
+        <div class="addr-wrap">
+          <input id="create-local" autocomplete="username" placeholder="yourname" style="flex:1">
+          <div class="addr-suffix">@ajgmail.com</div>
+        </div>
+        <div class="hint">Letters, numbers, dots and underscores. This becomes your AJG Mail address.</div>
+      </div>
+      <div class="field">
+        <label for="create-password">Password</label>
+        <input id="create-password" type="password" autocomplete="new-password" placeholder="At least 6 characters">
+      </div>
+      <div class="field">
+        <label for="create-password2">Confirm password</label>
+        <input id="create-password2" type="password" autocomplete="new-password" placeholder="Type it again">
+      </div>
+      <button class="auth-btn" type="submit">Create my account</button>
+    </form>
+
+    <p class="auth-foot">Accounts and mail are stored in the AJG Mail database.<br>If you're logged out, you'll always land here first.</p>
+  </div>
+</section>
+
+<!-- ================= APP ================= -->
+<section id="app" class="hidden">
+  <header>
+    <div class="logo"><div class="brand-mark">✉️</div> AJG&nbsp;Mail</div>
+    <div class="search"><span>🔎</span><input id="search" placeholder="Search mail"></div>
+    <div class="account">
+      <button class="acct-btn" id="acct-btn" type="button">
+        <span class="avatar" id="acct-avatar">?</span>
+        <span class="acct-meta"><b id="acct-name"></b><span id="acct-address"></span></span>
+      </button>
+      <div class="acct-menu hidden" id="acct-menu">
+        <div class="who">
+          <span class="avatar" id="menu-avatar">?</span>
+          <div><b id="menu-name"></b></div>
+          <div style="color:var(--dim);font-size:13px" id="menu-address"></div>
+        </div>
+        <button id="logout-btn" type="button">Log out</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <aside>
+      <button class="compose-btn" id="compose-open" type="button">✏️ Compose</button>
+      <nav class="nav" id="folder-nav">
+        <button data-folder="inbox" class="on" type="button">📥 Inbox <span class="count hidden" id="inbox-count">0</span></button>
+        <button data-folder="starred" type="button">⭐ Starred</button>
+        <button data-folder="sent" type="button">📤 Sent</button>
+        <button data-folder="trash" type="button">🗑️ Trash</button>
+      </nav>
+    </aside>
+
+    <div class="content">
+      <div class="toolbar">
+        <button class="icon-btn hidden" id="back-btn" type="button" title="Back">←</button>
+        <b id="folder-title">Inbox</b>
+        <span class="sp"></span>
+        <button class="icon-btn" id="refresh-btn" type="button" title="Refresh">↻</button>
+      </div>
+      <div class="mail-wrap" id="mail-wrap">
+        <div id="list"></div>
+        <div id="reader"></div>
+      </div>
+    </div>
+  </main>
+</section>
+
+<!-- ================= COMPOSE ================= -->
+<div class="overlay hidden" id="compose-overlay">
+  <div class="compose">
+    <div class="compose-head"><b>New message</b><button class="icon-btn" id="compose-close" type="button">✕</button></div>
+    <form id="compose-form">
+      <input id="compose-to" placeholder="To — name@ajgmail.com">
+      <input id="compose-subject" placeholder="Subject">
+      <textarea id="compose-body" placeholder="Write your message…"></textarea>
+      <div class="form-error" id="compose-error"></div>
+      <div class="send-row">
+        <button class="send-btn" type="submit">Send</button>
+        <span style="color:var(--dim);font-size:13px">Only AJG Mail addresses can receive mail here.</span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+"use strict";
+/* ============================================================
+   AJG Mail — cloud edition
+   Accounts: Firebase Authentication (email = name@ajgmail.com)
+   Database: Firebase Realtime Database
+     ajgmail/users/{uid}        -> { address, local, name, createdAt }
+     ajgmail/addresses/{local}  -> uid   (recipient lookup)
+     ajgmail/mail/{uid}/{id}    -> one copy of a message per mailbox
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBgGpjMERhIjAExMjON-X9d_QsPDlwmaV8",
+  authDomain: "ajg-mail.firebaseapp.com",
+  databaseURL: "https://ajg-mail-default-rtdb.firebaseio.com",
+  projectId: "ajg-mail",
+  storageBucket: "ajg-mail.firebasestorage.app",
+  messagingSenderId: "650156860047",
+  appId: "1:650156860047:web:1a42b3fb2a5af4b04706fa",
+  measurementId: "G-B13TRYF2FL"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const rtdb = firebase.database();
+const DOMAIN = "ajgmail.com";
+
+let me = null;                  // { uid, address, local, name }
+let messages = [];              // my mailbox copies, from the live listener
+let mailRef = null;
+let currentFolder = "inbox";
+let selectedId = null;
+let searchText = "";
+let signupProfile = null;       // set during create-account so the auth listener can finish the profile
+
+const $ = id => document.getElementById(id);
+const authEl = $("auth"), appEl = $("app");
+
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ---------- addresses ---------- */
+function localPart(raw){
+  let v = String(raw || "").trim().toLowerCase();
+  if(v.includes("@")){
+    const parts = v.split("@");
+    if(parts[1] !== DOMAIN) return null;
+    v = parts[0];
+  }
+  return v;
+}
+function validLocal(v){
+  return /^[a-z0-9][a-z0-9._]{2,23}$/.test(v) && !v.endsWith(".") && !v.includes("..");
+}
+function addressOf(local){ return local + "@" + DOMAIN; }
+function displayName(local, name){
+  const n = String(name || "").trim();
+  if(n) return n;
+  return local.replace(/[._]+/g," ").replace(/\b\w/g, c => c.toUpperCase());
+}
+
+/* ============================================================ AUTH UI */
+function authError(msg){
+  const box = $("auth-error");
+  if(!msg){ box.classList.remove("show"); box.textContent = ""; return; }
+  box.textContent = msg; box.classList.add("show");
+}
+function authErrorFor(err){
+  const code = (err && err.code) || "";
+  switch(code){
+    case "auth/email-already-in-use": return "That address is already taken. Try another name.";
+    case "auth/invalid-email": return "That address won't work — check it and try again.";
+    case "auth/weak-password": return "Password needs at least 6 characters.";
+    case "auth/user-not-found": return "No account with that address yet — create one first.";
+    case "auth/wrong-password":
+    case "auth/invalid-credential": return "Wrong password. Try again.";
+    case "auth/operation-not-allowed": return "Email/Password sign-in isn't turned on in Firebase yet (Authentication → Sign-in method).";
+    case "auth/network-request-failed": return "Network problem — check your connection and try again.";
+    case "auth/too-many-requests": return "Too many tries — wait a bit and try again.";
+    default: return "Something went wrong (" + (code || "unknown") + "). Try again.";
+  }
+}
+function setTab(create){
+  $("tab-login").classList.toggle("on", !create);
+  $("tab-create").classList.toggle("on", create);
+  $("login-form").classList.toggle("hidden", create);
+  $("create-form").classList.toggle("hidden", !create);
+  authError("");
+}
+$("tab-login").onclick = () => setTab(false);
+$("tab-create").onclick = () => setTab(true);
+
+function welcomeMailBody(address, name){
+  return "Hi " + name + ",\n\nYour AJG Mail address is ready: " + address + "\n\nHit Compose to send your first message to another @ajgmail.com address. Star the important stuff, search from the top bar, and anything you delete lands in Trash first.\n\n— The AJG Mail Team";
+}
+async function writeProfile(uid, profile){
+  await rtdb.ref("ajgmail/users/" + uid).set(profile);
+  const idx = rtdb.ref("ajgmail/addresses/" + profile.local);
+  const snap = await idx.once("value");
+  if(!snap.exists()) await idx.set(uid);
+}
+
+$("create-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const local = localPart($("create-local").value);
+  const name = displayName(local || "", $("create-name").value);
+  const pw = $("create-password").value;
+  const pw2 = $("create-password2").value;
+  if(local === null || !validLocal(local)) return authError("That address won't work — use 3–24 letters, numbers, dots or underscores.");
+  if(pw.length < 6) return authError("Password needs at least 6 characters.");
+  if(pw !== pw2) return authError("Those passwords don't match.");
+  const address = addressOf(local);
+  signupProfile = { address, local, name, createdAt: Date.now() };
+  try{
+    const cred = await auth.createUserWithEmailAndPassword(address, pw);
+    await writeProfile(cred.user.uid, signupProfile);
+    await rtdb.ref("ajgmail/mail/" + cred.user.uid).push({
+      owner: address, folder: "inbox",
+      from: "team@" + DOMAIN, fromName: "AJG Mail Team",
+      to: address, toName: name,
+      subject: "Welcome to AJG Mail ✉️",
+      body: welcomeMailBody(address, name),
+      time: Date.now(), read: false, starred: false
+    });
+    toast("Account created — welcome to AJG Mail 🎉");
+  }catch(err){
+    signupProfile = null;
+    authError(authErrorFor(err));
+  }
+});
+
+$("login-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const local = localPart($("login-address").value);
+  if(local === null || !validLocal(local)) return authError("Enter a valid @ajgmail.com address.");
+  try{
+    await auth.signInWithEmailAndPassword(addressOf(local), $("login-password").value);
+  }catch(err){
+    authError(authErrorFor(err));
+  }
+});
+
+$("logout-btn").onclick = () => auth.signOut();
+
+/* ---------- session: Firebase Auth decides gate vs app ---------- */
+auth.onAuthStateChanged(async user => {
+  if(mailRef){ mailRef.off(); mailRef = null; }
+  if(!user){
+    me = null; messages = []; selectedId = null;
+    appEl.classList.add("hidden");
+    authEl.classList.remove("hidden");
+    $("acct-menu").classList.add("hidden");
+    $("login-password").value = "";
+    setTab(false);
+    return;
+  }
+  let profile = null;
+  try{
+    const snap = await rtdb.ref("ajgmail/users/" + user.uid).once("value");
+    profile = snap.val();
+    if(!profile){
+      // Profile write may still be landing right after signup — give it one beat, then build it.
+      await new Promise(r => setTimeout(r, 700));
+      const snap2 = await rtdb.ref("ajgmail/users/" + user.uid).once("value");
+      profile = snap2.val();
+    }
+    if(!profile){
+      const local = localPart(user.email || "");
+      profile = (signupProfile && signupProfile.address === user.email)
+        ? signupProfile
+        : { address: user.email, local, name: displayName(local || "user", ""), createdAt: Date.now() };
+      await writeProfile(user.uid, profile);
+    }
+  }catch(err){
+    authError("Couldn't reach the database — check the Realtime Database rules are in test mode.");
+    return;
+  }
+  signupProfile = null;
+  me = { uid: user.uid, address: profile.address, local: profile.local, name: profile.name };
+  authEl.classList.add("hidden");
+  appEl.classList.remove("hidden");
+  paintAccount();
+  renderAll();
+  mailRef = rtdb.ref("ajgmail/mail/" + user.uid);
+  mailRef.on("value", snap => {
+    messages = [];
+    snap.forEach(ch => { const v = ch.val(); v.id = ch.key; messages.push(v); });
+    if(me) renderAll();
+  }, err => {
+    toast("Database blocked the mailbox — check the Realtime Database rules.");
+  });
+});
+
+/* ============================================================ APP */
+function paintAccount(){
+  const initial = (me.name || me.local || "?").trim().charAt(0).toUpperCase() || "?";
+  $("acct-avatar").textContent = initial;
+  $("menu-avatar").textContent = initial;
+  $("acct-name").textContent = me.name;
+  $("menu-name").textContent = me.name;
+  $("acct-address").textContent = me.address;
+  $("menu-address").textContent = me.address;
+}
+$("acct-btn").onclick = e => { e.stopPropagation(); $("acct-menu").classList.toggle("hidden"); };
+document.addEventListener("click", e => { if(!$("acct-menu").classList.contains("hidden") && !e.target.closest(".account")) $("acct-menu").classList.add("hidden"); });
+
+$("folder-nav").addEventListener("click", e => {
+  const btn = e.target.closest("[data-folder]");
+  if(!btn) return;
+  currentFolder = btn.dataset.folder;
+  selectedId = null;
+  document.querySelectorAll("#folder-nav button").forEach(b => b.classList.toggle("on", b === btn));
+  renderAll();
+});
+$("search").addEventListener("input", e => { searchText = e.target.value.trim().toLowerCase(); renderList(); });
+$("refresh-btn").onclick = () => renderAll();
+
+function myMail(){ return messages; }
+function folderMail(){
+  let rows = myMail();
+  if(currentFolder === "starred") rows = rows.filter(m => m.starred && m.folder !== "trash");
+  else rows = rows.filter(m => m.folder === currentFolder);
+  if(searchText){
+    rows = rows.filter(m => (m.fromName+" "+m.from+" "+m.to+" "+m.subject+" "+m.body).toLowerCase().includes(searchText));
+  }
+  return rows.slice().sort((a,b) => b.time - a.time);
+}
+function folderName(f){ return {inbox:"Inbox", starred:"Starred", sent:"Sent", trash:"Trash"}[f] || "Inbox"; }
+function fmtTime(t){
+  const d = new Date(t), now = new Date();
+  if(d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+  const y = new Date(now); y.setDate(now.getDate()-1);
+  if(d.toDateString() === y.toDateString()) return "Yesterday";
+  return d.toLocaleDateString([], {month:"short", day:"numeric", year: d.getFullYear() === now.getFullYear() ? undefined : "numeric"});
+}
+function snippet(body){ return String(body || "").replace(/\s+/g," ").slice(0,90); }
+function mailItem(id){ return messages.find(x => x.id === id); }
+function mailUpdate(id, fields){
+  return rtdb.ref("ajgmail/mail/" + me.uid + "/" + id).update(fields)
+    .catch(() => toast("Database blocked that change — check the rules."));
+}
+
+function renderAll(){ renderList(); renderReader(); paintCounts(); }
+function paintCounts(){
+  const unread = myMail().filter(m => m.folder === "inbox" && !m.read).length;
+  const badge = $("inbox-count");
+  badge.textContent = unread;
+  badge.classList.toggle("hidden", unread === 0);
+}
+function renderList(){
+  $("folder-title").textContent = folderName(currentFolder);
+  const rows = folderMail();
+  const list = $("list");
+  if(!rows.length){
+    list.innerHTML = '<div class="empty"><div class="big">' + (currentFolder==="trash" ? "🗑️" : "📭") + '</div>Nothing here yet.</div>';
+    return;
+  }
+  list.innerHTML = rows.map(m => {
+    const other = currentFolder === "sent" ? (m.toName || m.to) : (m.fromName || m.from);
+    const initial = String(other || "?").trim().charAt(0).toUpperCase() || "?";
+    return '<div class="mail-row ' + (m.id === selectedId ? "on " : "") + (!m.read && m.folder === "inbox" ? "unread" : "") + '" data-id="' + m.id + '">' +
+      '<span class="avatar">' + esc(initial) + '</span>' +
+      '<div class="mail-main">' +
+        '<div class="mail-top"><span class="mail-from">' + esc(other) + '</span>' + (m.starred ? '<span style="color:#f4b400">★</span>' : '') + '<span class="mail-time">' + fmtTime(m.time) + '</span></div>' +
+        '<div class="mail-subj">' + esc(m.subject || "(no subject)") + '</div>' +
+        '<div class="mail-snip">' + esc(snippet(m.body)) + '</div>' +
+      '</div>' + (!m.read && m.folder === "inbox" ? '<span class="dot"></span>' : '') +
+    '</div>';
+  }).join("");
+}
+$("list").addEventListener("click", e => {
+  const row = e.target.closest("[data-id]");
+  if(!row) return;
+  openMail(row.dataset.id);
+});
+function openMail(id){
+  selectedId = id;
+  const m = mailItem(id);
+  if(m && m.folder === "inbox" && !m.read) mailUpdate(id, { read: true });
+  $("mail-wrap").classList.add("reading");
+  renderAll();
+}
+$("back-btn").onclick = () => { $("mail-wrap").classList.remove("reading"); };
+
+function renderReader(){
+  const reader = $("reader");
+  const m = selectedId ? mailItem(selectedId) : null;
+  $("back-btn").classList.toggle("hidden", !m);
+  if(!m){
+    reader.innerHTML = '<div class="empty"><div class="big">✉️</div>Pick a message to read it here.</div>';
+    return;
+  }
+  const fromLabel = m.fromName ? m.fromName + " &lt;" + esc(m.from) + "&gt;" : esc(m.from);
+  const toLabel = m.toName ? m.toName + " &lt;" + esc(m.to) + "&gt;" : esc(m.to);
+  reader.innerHTML =
+    '<div class="reader-subj">' + esc(m.subject || "(no subject)") + '</div>' +
+    '<div class="reader-head"><span class="avatar">' + esc(String(m.fromName || m.from || "?").trim().charAt(0).toUpperCase() || "?") + '</span>' +
+      '<div style="flex:1;min-width:0"><b>' + fromLabel + '</b>' +
+      '<div style="color:var(--dim);font-size:13px">to ' + toLabel + ' · ' + new Date(m.time).toLocaleString([], {dateStyle:"medium", timeStyle:"short"}) + '</div></div>' +
+      '<button class="icon-btn star-btn ' + (m.starred ? "starred" : "") + '" id="rd-star" title="Star">' + (m.starred ? "★" : "☆") + '</button>' +
+    '</div>' +
+    '<div class="reader-body">' + esc(m.body) + '</div>' +
+    '<div class="reader-actions">' +
+      (m.folder !== "trash" ? '<button class="pill-btn" id="rd-reply">↩️ Reply</button>' : '') +
+      (m.folder === "trash"
+        ? '<button class="pill-btn" id="rd-restore">Restore</button><button class="pill-btn danger" id="rd-forever">Delete forever</button>'
+        : '<button class="pill-btn danger" id="rd-delete">🗑️ Delete</button>') +
+    '</div>';
+
+  const star = $("rd-star");
+  if(star) star.onclick = () => mailUpdate(m.id, { starred: !m.starred });
+  const reply = $("rd-reply");
+  if(reply) reply.onclick = () => openCompose(m);
+  const del = $("rd-delete");
+  if(del) del.onclick = () => { selectedId = null; $("mail-wrap").classList.remove("reading"); mailUpdate(m.id, { folder: "trash", prevFolder: m.folder }); toast("Moved to Trash"); };
+  const restore = $("rd-restore");
+  if(restore) restore.onclick = () => { mailUpdate(m.id, { folder: m.prevFolder || "inbox", prevFolder: null }); toast("Restored"); };
+  const forever = $("rd-forever");
+  if(forever) forever.onclick = () => {
+    selectedId = null; $("mail-wrap").classList.remove("reading");
+    rtdb.ref("ajgmail/mail/" + me.uid + "/" + m.id).remove().catch(() => toast("Database blocked that delete."));
+    toast("Deleted forever");
+  };
+}
+
+/* ============================================================ COMPOSE */
+function openCompose(replyTo){
+  $("compose-error").classList.remove("show");
+  $("compose-to").value = "";
+  $("compose-subject").value = "";
+  $("compose-body").value = "";
+  if(replyTo){
+    const target = replyTo.folder === "sent" ? replyTo.to : replyTo.from;
+    $("compose-to").value = target;
+    $("compose-subject").value = /^re:/i.test(replyTo.subject || "") ? replyTo.subject : "Re: " + (replyTo.subject || "");
+    $("compose-body").value = "\n\n----- Original message -----\n" + (replyTo.body || "");
+  }
+  $("compose-overlay").classList.remove("hidden");
+  $("compose-to").focus();
+}
+$("compose-open").onclick = () => openCompose(null);
+$("compose-close").onclick = () => $("compose-overlay").classList.add("hidden");
+$("compose-overlay").addEventListener("click", e => { if(e.target === $("compose-overlay")) $("compose-overlay").classList.add("hidden"); });
+
+$("compose-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const err = $("compose-error");
+  const fail = msg => { err.textContent = msg; err.classList.add("show"); };
+  err.classList.remove("show");
+  const local = localPart($("compose-to").value);
+  if(local === null || !validLocal(local)) return fail("That isn't a valid @ajgmail.com address.");
+  const toAddress = addressOf(local);
+  try{
+    const idxSnap = await rtdb.ref("ajgmail/addresses/" + local).once("value");
+    const recipientUid = idxSnap.val();
+    if(!recipientUid) return fail("No AJG Mail account has that address yet.");
+    const profSnap = await rtdb.ref("ajgmail/users/" + recipientUid).once("value");
+    const recipient = profSnap.val() || {};
+    const subject = $("compose-subject").value.trim();
+    const body = $("compose-body").value;
+    const now = Date.now();
+    await rtdb.ref("ajgmail/mail/" + me.uid).push({
+      owner: me.address, folder: "sent",
+      from: me.address, fromName: me.name,
+      to: toAddress, toName: recipient.name || toAddress,
+      subject, body, time: now, read: true, starred: false
+    });
+    await rtdb.ref("ajgmail/mail/" + recipientUid).push({
+      owner: toAddress, folder: "inbox",
+      from: me.address, fromName: me.name,
+      to: toAddress, toName: recipient.name || toAddress,
+      subject, body, time: now, read: recipientUid === me.uid, starred: false
+    });
+    $("compose-overlay").classList.add("hidden");
+    toast("Message sent 📤");
+  }catch(err2){
+    fail("The database blocked that send — check the Realtime Database rules.");
+  }
+});
+
+/* ============================================================ MISC */
+let toastTimer = null;
+function toast(msg){
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+</script>
+</body>
+</html>
